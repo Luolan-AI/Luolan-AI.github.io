@@ -1,16 +1,16 @@
 :root {
   color-scheme: light;
-  --bg: #f5f2ed;
-  --paper: rgba(250, 248, 244, 0.82);
+  --bg: #dfe2e2;
+  --paper: rgba(235, 237, 237, 0.78);
   --blue: #09568c;
   --blue-deep: #073d62;
   --blue-gray: #8d9ca0;
-  --warm-gray: #c9c2bd;
+  --warm-gray: #b9bdbc;
   --text: #20272b;
   --muted: #657076;
   --faint: #8a9092;
   --line: rgba(9, 86, 140, 0.18);
-  --line-soft: rgba(89, 98, 102, 0.14);
+  --line-soft: rgba(59, 70, 75, 0.16);
   --mono: "SFMono-Regular", "Cascadia Code", "Roboto Mono", Consolas, monospace;
   --sans: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
@@ -23,8 +23,8 @@ body {
   margin: 0;
   overflow-x: hidden;
   background:
-    radial-gradient(circle at 8% 14%, rgba(9, 86, 140, 0.07), transparent 24rem),
-    radial-gradient(circle at 94% 4%, rgba(201, 194, 189, 0.26), transparent 25rem),
+    radial-gradient(circle at 8% 14%, rgba(9, 86, 140, 0.055), transparent 24rem),
+    radial-gradient(circle at 94% 4%, rgba(255, 255, 255, 0.24), transparent 25rem),
     var(--bg);
   color: var(--text);
   font-family: var(--sans);
@@ -66,7 +66,7 @@ button { color: inherit; font: inherit; }
   min-height: 64px;
   padding: 0 4vw;
   border-bottom: 1px solid var(--line-soft);
-  background: rgba(245, 242, 237, 0.8);
+  background: rgba(223, 226, 226, 0.82);
   backdrop-filter: blur(18px) saturate(120%);
 }
 
@@ -103,7 +103,7 @@ footer {
   padding: 0.48rem 0.65rem;
   border: 1px solid var(--line);
   border-radius: 999px;
-  background: rgba(250, 248, 244, 0.66);
+  background: rgba(235, 237, 237, 0.72);
   color: var(--muted);
   font-size: 0.54rem;
   cursor: pointer;
@@ -172,12 +172,21 @@ footer {
 .profile-facts dd { margin: 0; color: var(--text); }
 .online-dot { display: inline-block; width: 0.36rem; height: 0.36rem; margin-right: 0.48rem; border-radius: 50%; background: var(--blue); box-shadow: 0 0 0 3px rgba(9, 86, 140, 0.09); }
 
-.sidebar-links { display: flex; flex-wrap: wrap; gap: 0.65rem 1rem; padding: 1.1rem 0; border-bottom: 1px solid var(--line-soft); color: var(--muted); font-size: 0.49rem; }
-.sidebar-links a { color: var(--blue-deep); }
-.sidebar-links a:hover { color: var(--blue); }
-.sidebar-links > span { color: var(--faint); }
+.sidebar-links { display: grid; padding: 0.8rem 0; border-bottom: 1px solid var(--line-soft); color: var(--muted); font-size: 0.47rem; }
+.contact-link { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; gap: 0.7rem; align-items: center; padding: 0.62rem 0.2rem; border-bottom: 1px solid rgba(59, 70, 75, 0.09); transition: color 250ms ease, padding 250ms ease, background 250ms ease; }
+.contact-link:last-child { border-bottom: 0; }
+.contact-icon { width: 17px; height: 17px; fill: none; stroke: var(--blue-gray); stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.45; transition: stroke 250ms ease; }
+.contact-icon-github { fill: var(--blue-gray); stroke: none; transition: fill 250ms ease; }
+.contact-copy { display: grid; min-width: 0; gap: 0.18rem; }
+.contact-copy small { color: var(--faint); font: 0.43rem var(--mono); letter-spacing: 0.08em; text-transform: uppercase; }
+.contact-copy strong { overflow: hidden; color: var(--blue-deep); font-size: 0.61rem; font-weight: 600; letter-spacing: 0; text-overflow: ellipsis; text-transform: none; white-space: nowrap; }
+.contact-link:hover { padding-right: 0.45rem; padding-left: 0.45rem; background: rgba(9, 86, 140, 0.055); color: var(--blue); }
+.contact-link:hover .contact-icon { stroke: var(--blue); }
+.contact-link:hover .contact-icon-github { fill: var(--blue); stroke: none; }
+.contact-link-muted strong, .contact-link-muted > span:last-child { color: var(--faint); font-weight: 500; }
+.contact-link-muted:hover { padding-right: 0.2rem; padding-left: 0.2rem; background: transparent; }
 
-.sidebar-interests { margin-top: 1.25rem; padding: 1rem 1.05rem; border-left: 3px solid var(--blue); background: rgba(141, 156, 160, 0.11); }
+.sidebar-interests { margin-top: 1.25rem; padding: 1rem 1.05rem; border-left: 3px solid var(--blue); background: rgba(255, 255, 255, 0.18); }
 .sidebar-interests > p { margin: 0 0 0.8rem; color: var(--blue-deep); font-size: 0.49rem; }
 .sidebar-interests ul { display: grid; gap: 0.48rem; margin: 0; padding: 0; color: var(--muted); font-size: 0.69rem; line-height: 1.35; list-style: none; }
 .sidebar-interests li::before { margin-right: 0.45rem; color: var(--blue); content: "·"; }
@@ -251,7 +260,8 @@ footer {
 .project-arrow { color: var(--blue); }
 
 .personal-section { border-bottom: 0; }
-.soul-text { display: grid; grid-template-columns: 0.95fr 1.15fr; gap: clamp(2rem, 5vw, 4rem); padding: clamp(2rem, 5vw, 3.5rem); border: 1px solid var(--line); background: rgba(250, 248, 244, 0.58); box-shadow: 0 18px 55px rgba(28, 52, 65, 0.05); }
+.personal-section .section-heading { display: block; margin-bottom: 1.5rem; }
+.soul-text { display: grid; grid-template-columns: 0.95fr 1.15fr; gap: clamp(2rem, 5vw, 4rem); padding: clamp(2rem, 5vw, 3.5rem); border: 1px solid var(--line); background: rgba(235, 237, 237, 0.56); box-shadow: 0 18px 55px rgba(28, 52, 65, 0.05); }
 .soul-text blockquote { margin: 0; color: #59666b; font-family: Georgia, "Times New Roman", serif; font-size: clamp(0.94rem, 1.55vw, 1.08rem); font-style: italic; line-height: 1.95; }
 .soul-text blockquote[lang="zh-CN"] { color: #4f5b60; font-family: "Songti SC", "Noto Serif CJK SC", serif; font-size: clamp(0.88rem, 1.35vw, 0.98rem); line-height: 2.2; }
 .soul-text blockquote + blockquote { padding-left: clamp(1.5rem, 4vw, 3rem); border-left: 1px solid var(--warm-gray); }
