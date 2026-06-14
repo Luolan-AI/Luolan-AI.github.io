@@ -3,6 +3,53 @@
 
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+  const readColor = (name, fallback) => getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
+
+  class ThemeController {
+    constructor(button) {
+      this.button = button;
+      this.meta = document.querySelector('meta[name="theme-color"]');
+      this.media = window.matchMedia("(prefers-color-scheme: dark)");
+      this.hasSavedTheme = false;
+      try {
+        this.hasSavedTheme = Boolean(localStorage.getItem("lan-luo-theme"));
+      } catch {
+        this.hasSavedTheme = false;
+      }
+      this.updateButton();
+      button.addEventListener("click", () => this.toggle());
+      this.media.addEventListener("change", (event) => {
+        if (!this.hasSavedTheme) this.apply(event.matches ? "dark" : "light", false);
+      });
+    }
+
+    toggle() {
+      const nextTheme = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+      this.apply(nextTheme, true);
+    }
+
+    apply(theme, persist) {
+      document.documentElement.dataset.theme = theme;
+      this.hasSavedTheme = persist || this.hasSavedTheme;
+      if (persist) {
+        try {
+          localStorage.setItem("lan-luo-theme", theme);
+        } catch {
+          // The visual mode still works when storage is unavailable.
+        }
+      }
+      this.updateButton();
+      window.dispatchEvent(new CustomEvent("themechange", { detail: { theme } }));
+    }
+
+    updateButton() {
+      const isDark = document.documentElement.dataset.theme === "dark";
+      this.button.setAttribute("aria-pressed", String(isDark));
+      this.button.setAttribute("aria-label", isDark ? "Switch to light mode" : "Switch to dark mode");
+      this.button.querySelector(".theme-label").textContent = isDark ? "light" : "night";
+      if (this.meta) this.meta.content = isDark ? "#171a1c" : "#dfe2e2";
+    }
+  }
 
   class NeuralField {
     constructor(canvas) {
@@ -12,15 +59,24 @@
       this.nodes = [];
       this.edges = [];
       this.time = 0;
+      this.updatePalette = this.updatePalette.bind(this);
       this.resize = this.resize.bind(this);
       this.draw = this.draw.bind(this);
       window.addEventListener("resize", this.resize, { passive: true });
+      window.addEventListener("themechange", this.updatePalette);
       window.addEventListener("pointermove", (event) => {
         this.pointer.x = event.clientX / window.innerWidth;
         this.pointer.y = event.clientY / window.innerHeight;
       }, { passive: true });
+      this.updatePalette();
       this.resize();
       this.draw();
+    }
+
+    updatePalette() {
+      this.lineColor = readColor("--canvas-line-rgb", "9, 86, 140");
+      this.nodeColor = readColor("--canvas-node-rgb", "141, 156, 160");
+      if (reducedMotion && this.width) this.draw();
     }
 
     resize() {
@@ -88,7 +144,7 @@
         const bx = b.x + Math.sin(this.time * b.speed + b.phase) * 8 + parallaxX * 0.45;
         const by = b.y + Math.cos(this.time * b.speed + b.phase) * 9 + parallaxY * 0.45;
         const pulse = 0.028 + Math.sin(this.time * 1.6 + index * 0.7) * 0.009;
-        ctx.strokeStyle = `rgba(9, 86, 140, ${pulse * 1.9})`;
+        ctx.strokeStyle = `rgba(${this.lineColor}, ${pulse * 1.9})`;
         ctx.beginPath();
         ctx.moveTo(ax, ay);
         ctx.lineTo(bx, by);
@@ -100,7 +156,7 @@
         const x = node.x + Math.sin(this.time * node.speed + node.phase) * 8 + parallaxX * depth;
         const y = node.y + Math.cos(this.time * node.speed + node.phase) * 9 + parallaxY * depth;
         const alpha = 0.09 + (Math.sin(this.time * 1.3 + index) + 1) * 0.035;
-        ctx.fillStyle = `rgba(141, 156, 160, ${alpha * 0.9})`;
+        ctx.fillStyle = `rgba(${this.nodeColor}, ${alpha * 0.9})`;
         ctx.beginPath();
         ctx.arc(x, y, node.radius, 0, Math.PI * 2);
         ctx.fill();
@@ -119,6 +175,7 @@
       this.radius = 70;
       this.resizeTimer = 0;
       this.onMove = null;
+      this.updatePalette = this.updatePalette.bind(this);
       this.resize = this.resize.bind(this);
       this.animate = this.animate.bind(this);
       window.addEventListener("resize", () => {
@@ -142,8 +199,15 @@
           this.pointer.y = -9999;
         }
       }, { passive: true });
+      window.addEventListener("themechange", this.updatePalette);
+      this.updatePalette();
       this.resize();
       this.animate();
+    }
+
+    updatePalette() {
+      this.particleColor = readColor("--particle-rgb", "9, 86, 140");
+      if (reducedMotion && this.width) this.drawStatic();
     }
 
     handlePointer(event) {
@@ -207,7 +271,7 @@
     drawStatic() {
       this.ctx.clearRect(0, 0, this.width, this.height);
       this.particles.forEach((particle) => {
-        this.ctx.fillStyle = `rgba(9, 86, 140, ${particle.alpha})`;
+        this.ctx.fillStyle = `rgba(${this.particleColor}, ${particle.alpha})`;
         this.ctx.fillRect(particle.tx, particle.ty, particle.size, particle.size);
       });
     }
@@ -237,7 +301,7 @@
 
         const speed = Math.abs(particle.vx) + Math.abs(particle.vy);
         const shimmer = clamp(speed * 0.05, 0, 0.22);
-        this.ctx.fillStyle = `rgba(9, 86, 140, ${particle.alpha - 0.14 + shimmer})`;
+        this.ctx.fillStyle = `rgba(${this.particleColor}, ${particle.alpha - 0.14 + shimmer})`;
         this.ctx.beginPath();
         this.ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
         this.ctx.fill();
@@ -266,6 +330,7 @@
       if (!this.context) return;
       this.enabled = !this.enabled;
       this.button.setAttribute("aria-pressed", String(this.enabled));
+      this.button.setAttribute("aria-label", this.enabled ? "Disable ambient sound" : "Enable ambient sound");
       this.button.querySelector(".sound-label").textContent = this.enabled ? "sound: listening" : "sound: muted";
       if (this.enabled) {
         if (this.context.state === "suspended") {
@@ -345,7 +410,9 @@
 
   const spaceCanvas = document.querySelector("#space-canvas");
   const titleCanvas = document.querySelector("#particle-title");
+  const themeButton = document.querySelector(".theme-toggle");
   const soundButton = document.querySelector(".sound-toggle");
+  new ThemeController(themeButton);
   new NeuralField(spaceCanvas);
   const particleTitle = new ParticleTitle(titleCanvas);
   new MusicBox(soundButton, particleTitle);
