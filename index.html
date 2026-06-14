@@ -7,16 +7,17 @@
       name="description"
       content="Lan Luo explores representation learning, long-context processing, information compression, retrieval, reasoning, and computational cognitive science."
     />
-    <meta name="theme-color" content="#08090a" />
+    <meta name="theme-color" content="#f5f2ed" />
     <title>Lan Luo · AI/ML Research</title>
-    <link rel="stylesheet" href="styles.css?v=5" />
+    <link rel="stylesheet" href="styles.css?v=6" />
   </head>
   <body>
     <canvas id="space-canvas" aria-hidden="true"></canvas>
 
     <header class="site-header">
-      <a class="wordmark" href="#top" aria-label="Lan Luo, home">LAN LUO</a>
+      <a class="wordmark" href="#about" aria-label="Lan Luo, home">LAN LUO</a>
       <nav aria-label="Primary navigation">
+        <a href="#about">About</a>
         <a href="#research">Research</a>
         <a href="#publications">Publications</a>
         <a href="#projects">Projects</a>
@@ -28,103 +29,130 @@
       </button>
     </header>
 
-    <main>
-      <section class="hero" id="top">
-        <span class="status-chip status-chip-left">PROFILE / RESEARCH</span>
-        <span class="status-chip status-chip-right">GERMANY / ONLINE</span>
-
-        <div class="academic-hero">
-          <div class="portrait-placeholder" role="img" aria-label="Portrait placeholder for Lan Luo">
-            <span>Portrait</span>
-            <small>upload your photo here</small>
-          </div>
-
-          <div class="profile-copy">
-            <p class="eyebrow">AI / ML · REPRESENTATION LEARNING</p>
-            <div class="particle-stage" aria-label="Lan Luo">
-              <h1 class="particle-fallback">LAN LUO</h1>
-              <canvas id="particle-title" aria-hidden="true"></canvas>
-            </div>
-            <p class="profile-role">Research interests in long-context intelligence and cognitive computation.</p>
-            <p class="profile-summary">
-              I study how intelligent systems represent, compress, retrieve, and reason over information. My secondary
-              interests lie in computational cognitive science and NeuroAI, particularly memory, attention, and reasoning.
-            </p>
-            <div class="profile-links">
-              <a href="https://github.com/Luolan-AI">GitHub <span aria-hidden="true">↗</span></a>
-              <a href="https://github.com/Luolan-AI/long-context-learning-log">Research Notes <span aria-hidden="true">↗</span></a>
-              <span>CV / forthcoming</span>
-            </div>
-          </div>
+    <main class="site-layout">
+      <aside class="profile-sidebar" aria-label="Profile">
+        <div class="portrait-frame">
+          <img src="assets/lan-luo-portrait.jpg" alt="Portrait of Lan Luo by the sea at sunset" />
         </div>
 
-        <p class="sound-hint">enable sound, then move through the particles</p>
-      </section>
+        <div class="sidebar-identity">
+          <p class="sidebar-kicker">AI / ML RESEARCH</p>
+          <h1>Lan Luo</h1>
+          <p>Representation learning, long-context intelligence, and cognitive computation.</p>
+        </div>
 
-      <div class="academic-content">
-        <section class="academic-section reveal" id="research">
+        <dl class="profile-facts">
+          <div>
+            <dt>Based in</dt>
+            <dd>Germany</dd>
+          </div>
+          <div>
+            <dt>Focus</dt>
+            <dd>AI / ML</dd>
+          </div>
+          <div>
+            <dt>Status</dt>
+            <dd><span class="online-dot" aria-hidden="true"></span>Exploring</dd>
+          </div>
+        </dl>
+
+        <div class="sidebar-links" aria-label="Profile links">
+          <a href="https://github.com/Luolan-AI">GitHub <span aria-hidden="true">↗</span></a>
+          <a href="https://github.com/Luolan-AI/long-context-learning-log">Research Notes <span aria-hidden="true">↗</span></a>
+          <span>CV · forthcoming</span>
+        </div>
+
+        <div class="sidebar-interests">
+          <p>Research interests</p>
+          <ul>
+            <li>Representation learning</li>
+            <li>Long-context processing</li>
+            <li>Compression & retrieval</li>
+            <li>Reasoning</li>
+            <li>Computational cognitive science</li>
+          </ul>
+        </div>
+      </aside>
+
+      <div class="main-column">
+        <section class="hero" id="about">
+          <div class="section-index" aria-hidden="true">01 / ABOUT</div>
+          <p class="eyebrow">HELLO, I AM</p>
+          <div class="particle-stage" aria-label="Lan Luo">
+            <p class="particle-fallback">LAN LUO</p>
+            <canvas id="particle-title" aria-hidden="true"></canvas>
+          </div>
+          <h2>Studying how intelligent systems remember, compress, retrieve, and reason.</h2>
+          <div class="about-copy">
+            <p>
+              My main direction is <strong>AI/ML and representation learning</strong>, with a focus on long-context
+              processing, information compression, retrieval, and reasoning.
+            </p>
+            <p>
+              As a secondary interest, I explore computational cognitive science and NeuroAI to understand memory,
+              attention, and reasoning in human cognition.
+            </p>
+          </div>
+          <p class="sound-hint">enable sound, then move through the particles</p>
+        </section>
+
+        <section class="content-section reveal" id="research">
           <header class="section-heading">
-            <p>Research</p>
+            <p>02 / RESEARCH</p>
             <h2>Research Interests</h2>
           </header>
 
-          <div class="research-body">
-            <p class="research-statement">
-              My main direction is <strong>AI/ML and representation learning</strong>, with an emphasis on systems that
-              can preserve, recover, and reason with information over long contexts.
-            </p>
-            <div class="interest-list">
-              <article>
-                <span>01</span>
-                <div>
-                  <h3>Long-context processing</h3>
-                  <p>Architectures and representations for maintaining useful information across extended sequences.</p>
-                </div>
-              </article>
-              <article>
-                <span>02</span>
-                <div>
-                  <h3>Compression & retrieval</h3>
-                  <p>Selective memory, compact representations, and mechanisms for recovering relevant knowledge.</p>
-                </div>
-              </article>
-              <article>
-                <span>03</span>
-                <div>
-                  <h3>Reasoning</h3>
-                  <p>How learned representations support reliable inference, composition, and multi-step reasoning.</p>
-                </div>
-              </article>
-              <article>
-                <span>04</span>
-                <div>
-                  <h3>Cognitive science & NeuroAI</h3>
-                  <p>Computational perspectives on human memory, attention, and reasoning.</p>
-                </div>
-              </article>
-            </div>
+          <div class="interest-list">
+            <article>
+              <span>01</span>
+              <div>
+                <h3>Long-context processing</h3>
+                <p>Representations and architectures that preserve useful information across extended sequences.</p>
+              </div>
+            </article>
+            <article>
+              <span>02</span>
+              <div>
+                <h3>Information compression & retrieval</h3>
+                <p>Selective memory, compact representations, and mechanisms for recovering relevant knowledge.</p>
+              </div>
+            </article>
+            <article>
+              <span>03</span>
+              <div>
+                <h3>Reasoning</h3>
+                <p>How learned representations support reliable inference, composition, and multi-step reasoning.</p>
+              </div>
+            </article>
+            <article>
+              <span>04</span>
+              <div>
+                <h3>Cognitive science & NeuroAI</h3>
+                <p>Computational perspectives on human memory, attention, and reasoning.</p>
+              </div>
+            </article>
           </div>
         </section>
 
-        <section class="academic-section reveal" id="publications">
+        <section class="content-section reveal" id="publications">
           <header class="section-heading">
-            <p>Research Output</p>
+            <p>03 / RESEARCH OUTPUT</p>
             <h2>Publications</h2>
           </header>
 
-          <div class="publication-empty">
-            <span class="publication-mark">∅</span>
+          <div class="empty-state">
+            <span class="empty-mark">∅</span>
             <div>
               <h3>Work in progress</h3>
               <p>Papers, preprints, and research manuscripts will appear here.</p>
             </div>
-            <span class="publication-status">forthcoming</span>
+            <span class="empty-status">forthcoming</span>
           </div>
         </section>
 
-        <section class="academic-section reveal" id="projects">
+        <section class="content-section reveal" id="projects">
           <header class="section-heading">
-            <p>Selected Work</p>
+            <p>04 / SELECTED WORK</p>
             <h2>Projects</h2>
           </header>
 
@@ -150,9 +178,9 @@
           </div>
         </section>
 
-        <section class="personal-section reveal" id="personal" aria-labelledby="personal-title">
+        <section class="content-section personal-section reveal" id="personal" aria-labelledby="personal-title">
           <header class="section-heading">
-            <p>Personal Note</p>
+            <p>05 / PERSONAL NOTE</p>
             <h2 id="personal-title">A constellation of kindred spirits</h2>
           </header>
           <div class="soul-text">
@@ -170,14 +198,14 @@
             </blockquote>
           </div>
         </section>
+
+        <footer>
+          <p>LAN LUO · AI/ML RESEARCH</p>
+          <p>© <span id="year"></span> · BETWEEN PROOFS AND POETRY</p>
+        </footer>
       </div>
     </main>
 
-    <footer>
-      <p>LAN LUO · AI/ML RESEARCH</p>
-      <p>© <span id="year"></span> · BETWEEN PROOFS AND POETRY</p>
-    </footer>
-
-    <script src="script.js?v=5"></script>
+    <script src="script.js?v=6"></script>
   </body>
 </html>

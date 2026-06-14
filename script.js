@@ -88,7 +88,7 @@
         const bx = b.x + Math.sin(this.time * b.speed + b.phase) * 8 + parallaxX * 0.45;
         const by = b.y + Math.cos(this.time * b.speed + b.phase) * 9 + parallaxY * 0.45;
         const pulse = 0.028 + Math.sin(this.time * 1.6 + index * 0.7) * 0.009;
-        ctx.strokeStyle = `rgba(205, 210, 214, ${pulse})`;
+        ctx.strokeStyle = `rgba(9, 86, 140, ${pulse * 1.9})`;
         ctx.beginPath();
         ctx.moveTo(ax, ay);
         ctx.lineTo(bx, by);
@@ -100,7 +100,7 @@
         const x = node.x + Math.sin(this.time * node.speed + node.phase) * 8 + parallaxX * depth;
         const y = node.y + Math.cos(this.time * node.speed + node.phase) * 9 + parallaxY * depth;
         const alpha = 0.09 + (Math.sin(this.time * 1.3 + index) + 1) * 0.035;
-        ctx.fillStyle = `rgba(224, 226, 228, ${alpha})`;
+        ctx.fillStyle = `rgba(141, 156, 160, ${alpha * 0.9})`;
         ctx.beginPath();
         ctx.arc(x, y, node.radius, 0, Math.PI * 2);
         ctx.fill();
@@ -207,7 +207,7 @@
     drawStatic() {
       this.ctx.clearRect(0, 0, this.width, this.height);
       this.particles.forEach((particle) => {
-        this.ctx.fillStyle = `rgba(230, 232, 233, ${particle.alpha})`;
+        this.ctx.fillStyle = `rgba(9, 86, 140, ${particle.alpha})`;
         this.ctx.fillRect(particle.tx, particle.ty, particle.size, particle.size);
       });
     }
@@ -237,7 +237,7 @@
 
         const speed = Math.abs(particle.vx) + Math.abs(particle.vy);
         const shimmer = clamp(speed * 0.05, 0, 0.22);
-        this.ctx.fillStyle = `rgba(230, 232, 233, ${particle.alpha - 0.14 + shimmer})`;
+        this.ctx.fillStyle = `rgba(9, 86, 140, ${particle.alpha - 0.14 + shimmer})`;
         this.ctx.beginPath();
         this.ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
         this.ctx.fill();
