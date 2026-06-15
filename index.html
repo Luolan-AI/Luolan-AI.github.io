@@ -20,7 +20,7 @@
         }
       })();
     </script>
-    <link rel="stylesheet" href="styles.css?v=9" />
+    <link rel="stylesheet" href="styles.css?v=10" />
   </head>
   <body class="intro-active">
     <section class="gesture-intro" id="gesture-intro" aria-label="Interactive introduction">
@@ -28,7 +28,6 @@
 
       <div class="intro-topbar">
         <span>GESTURE FIELD / 00</span>
-        <span class="intro-topbar-center">BACH · D MAJOR</span>
         <button class="intro-skip" type="button">Skip intro <span aria-hidden="true">↘</span></button>
       </div>
 
@@ -38,10 +37,8 @@
       <div class="intro-orbit intro-orbit-right" aria-hidden="true">LOCAL VISION / PRIVATE</div>
 
       <div class="intro-guide">
-        <p class="intro-kicker">AN INTERACTIVE PRELUDE</p>
-        <h2>Move through the particles.</h2>
         <div class="intro-instructions">
-          <p><span>01</span> Move your hand left and right to stir the field and play the D-major motif.</p>
+          <p><span>01</span> Move your hand through the name to stir the particles.</p>
           <p><span>02</span> Open all five fingers and hold to enter the academic profile.</p>
         </div>
 
@@ -60,13 +57,10 @@
           <span class="gesture-progress" aria-hidden="true"><i></i></span>
           <span id="gesture-status">Camera is optional · click the field to enter</span>
         </div>
-        <p class="intro-privacy">Camera frames stay on this device. No images are recorded or uploaded.</p>
+        <p class="intro-privacy">Hand tracking stays on this device. No images are recorded or uploaded.</p>
       </div>
 
-      <div class="camera-monitor" id="camera-monitor" hidden>
-        <video id="gesture-video" playsinline muted></video>
-        <span>LIVE / HAND TRACKING</span>
-      </div>
+      <video id="gesture-video" class="gesture-video-source" playsinline muted aria-hidden="true"></video>
     </section>
 
     <noscript>
@@ -306,7 +300,7 @@
       </div>
     </main>
 
-    <script src="gesture-intro.js?v=2"></script>
+    <script src="gesture-intro.js?v=3"></script>
     <script src="script.js?v=8"></script>
   </body>
 </html>
