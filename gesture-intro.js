@@ -170,6 +170,7 @@
       this.trails = [];
       this.ripples = [];
       this.pointer = { x: -9999, y: -9999, vx: 0, vy: 0, active: false, source: "mouse", intensity: 0 };
+      this.handPointer = null;
       this.lastInput = { x: 0, y: 0, time: performance.now(), source: "mouse" };
       this.gesturePose = "neutral";
       this.poseChangedAt = performance.now();
@@ -293,7 +294,14 @@
     }
 
     setHandPointer(x, y) {
-      this.handleMotion(x * this.width, y * this.height, "hand");
+      const targetX = x * this.width;
+      const targetY = y * this.height;
+      if (!this.handPointer) this.handPointer = { x: targetX, y: targetY };
+      const distance = Math.hypot(targetX - this.handPointer.x, targetY - this.handPointer.y);
+      const smoothing = clamp(0.38 + distance / 420, 0.38, 0.78);
+      this.handPointer.x += (targetX - this.handPointer.x) * smoothing;
+      this.handPointer.y += (targetY - this.handPointer.y) * smoothing;
+      this.handleMotion(this.handPointer.x, this.handPointer.y, "hand");
     }
 
     handleMotion(x, y, source) {
@@ -457,6 +465,21 @@
           const dx = particle.x - this.pointer.x;
           const dy = particle.y - this.pointer.y;
           const distanceSquared = dx * dx + dy * dy;
+          const targetDx = particle.tx - this.pointer.x;
+          const targetDy = particle.ty - this.pointer.y;
+          const targetDistance = Math.hypot(targetDx, targetDy);
+          const coreRadius = this.radius * (this.pointer.source === "hand" ? 0.5 : 0.44);
+
+          if (targetDistance < coreRadius) {
+            const targetAngle = targetDistance > 0.01
+              ? Math.atan2(targetDy, targetDx)
+              : particle.phase;
+            const targetPush = coreRadius + (1 - targetDistance / coreRadius) * 18;
+            targetX = this.pointer.x + Math.cos(targetAngle) * targetPush;
+            targetY = this.pointer.y + Math.sin(targetAngle) * targetPush;
+            attraction *= 1.25;
+          }
+
           if (distanceSquared < this.radius * this.radius && distanceSquared > 0.01) {
             const distance = Math.sqrt(distanceSquared);
             const influence = 1 - distance / this.radius;
@@ -503,6 +526,8 @@
 
       ctx.restore();
       this.pointer.intensity *= 0.92;
+      this.pointer.vx *= 0.9;
+      this.pointer.vy *= 0.9;
       if (!reducedMotion) requestAnimationFrame(this.animate);
     }
   }
@@ -518,6 +543,7 @@
       this.lastVideoTime = -1;
       this.lastDetection = 0;
       this.lastFrame = performance.now();
+      this.lastHandSeen = 0;
       this.entryHold = 0;
       this.loop = this.loop.bind(this);
     }
@@ -598,28 +624,29 @@
 
       if (!landmarks) {
         this.entryHold = Math.max(0, this.entryHold - delta * 1.8);
+        if (now - this.lastHandSeen < 240) {
+          this.updateProgress();
+          status.textContent = "Tracking hand · keep moving through the name";
+          return;
+        }
         this.field.setGesturePose("neutral");
+        this.field.handPointer = null;
         this.field.setPointer(-9999, -9999, false, "hand");
         this.music.stop();
         this.updateProgress();
         status.textContent = "No hand detected · place one hand in view";
         return;
       }
+      this.lastHandSeen = now;
 
-      const palmIds = [0, 5, 9, 13, 17];
-      const center = palmIds.reduce((sum, index) => ({
-        x: sum.x + landmarks[index].x,
-        y: sum.y + landmarks[index].y,
-      }), { x: 0, y: 0 });
-      const palmX = center.x / palmIds.length;
-      const palmY = center.y / palmIds.length;
       const indexTip = landmarks[8];
-      const x = 1 - (indexTip.x * 0.72 + palmX * 0.28);
-      const y = indexTip.y * 0.72 + palmY * 0.28;
+      const x = 1 - indexTip.x;
+      const y = indexTip.y;
       this.field.setHandPointer(x, y);
 
       const openness = this.getOpenness(landmarks);
       const okGesture = this.isOkGesture(landmarks);
+      const fistGesture = this.isFistGesture(landmarks);
       if (okGesture) {
         this.entryHold += delta;
         this.field.setGesturePose("neutral");
@@ -629,7 +656,7 @@
         if (openness >= 0.8) {
           this.field.setGesturePose("open");
           status.textContent = "Open hand · particles released";
-        } else if (openness <= 0.2) {
+        } else if (fistGesture) {
           this.field.setGesturePose("fist");
           status.textContent = "Fist detected · gathering LAN LUO";
         } else {
@@ -665,6 +692,18 @@
       return pinched && raised >= 2;
     }
 
+    isFistGesture(landmarks) {
+      const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y, (a.z || 0) - (b.z || 0));
+      const wrist = landmarks[0];
+      const curledFingers = [[8, 6], [12, 10], [16, 14], [20, 18]].filter(([tip, pip]) => (
+        distance(landmarks[tip], wrist) < distance(landmarks[pip], wrist) * 1.08
+      )).length;
+      const indexCurled = distance(landmarks[8], wrist) < distance(landmarks[6], wrist) * 1.08;
+      const palmSpan = Math.max(0.06, distance(landmarks[5], landmarks[17]));
+      const thumbFolded = distance(landmarks[4], landmarks[9]) < palmSpan * 0.95;
+      return indexCurled && curledFingers >= 3 && thumbFolded;
+    }
+
     updateProgress() {
       const progress = clamp(this.entryHold / 680, 0, 1);
       intro.style.setProperty("--gesture-progress", `${progress * 360}deg`);
@@ -675,6 +714,7 @@
       this.stream?.getTracks().forEach((track) => track.stop());
       this.stream = null;
       video.srcObject = null;
+      this.field.handPointer = null;
       this.field.setPointer(-9999, -9999, false, "hand");
       this.field.setGesturePose("neutral");
       this.music.stop();
@@ -696,7 +736,7 @@
       if (enabled) music.cadence();
     });
     handController?.stop();
-    status.textContent = method === "gesture" ? "Open palm accepted · entering" : "Entering academic profile";
+    status.textContent = method === "gesture" ? "OK gesture accepted · entering" : "Entering academic profile";
     intro.classList.add("is-leaving");
     intro.setAttribute("aria-hidden", "true");
     siteHeader.inert = false;
