@@ -21,22 +21,27 @@
   siteHeader.setAttribute("aria-hidden", "true");
   siteMain.setAttribute("aria-hidden", "true");
 
-  class CelloSuitesMusic {
+  class ContinuousMusic {
     constructor() {
       this.context = null;
       this.master = null;
       this.delay = null;
       this.enabled = false;
-      this.lastPlayed = 0;
-      this.lastNote = -1;
-      this.suites = [
-        [43, 50, 59, 57, 59, 50, 59, 50, 43, 50, 59, 57, 59, 50, 59, 50, 43, 52, 60, 59, 60, 52, 60, 52, 43, 52, 60, 59, 60, 52, 60, 52],
-        [50, 53, 57, 53, 52, 50, 49, 52, 55, 57, 58, 57, 55, 53, 52, 55, 58, 61, 64, 58, 57, 55, 53, 52, 53, 55, 57, 53, 50, 48, 46, 45],
-        [60, 59, 57, 55, 53, 52, 50, 48, 43, 40, 43, 36, 38, 40, 41, 43, 45, 47, 48, 50, 48, 47, 45, 43, 45, 47, 48, 50, 52, 53, 50, 52],
-        [39, 63, 58, 55, 58, 51, 55, 46, 39, 63, 58, 55, 58, 51, 55, 46, 39, 61, 58, 55, 58, 51, 55, 46, 39, 61, 58, 55, 58, 51, 55, 46],
-        [36, 48, 43, 45, 47, 48, 50, 51, 53, 51, 50, 51, 48, 36, 47, 53, 56, 56, 55, 56, 53, 51, 53, 50, 48, 51, 36, 48, 48, 50, 51, 47],
-        [50, 50, 50, 50, 50, 54, 50, 50, 57, 50, 50, 62, 50, 50, 50, 50, 50, 54, 50, 50, 57, 50, 50, 62, 59, 50, 55, 59, 61, 62, 57, 50],
+      this.step = 0;
+      this.timer = 0;
+      this.activeUntil = 0;
+      this.motion = { x: 0.5, y: 0.5, energy: 0.45, direction: 1 };
+      this.sequence = [
+        62, 66, 69, 74,
+        67, 71, 74, 79,
+        69, 73, 76, 81,
+        59, 62, 66, 71,
+        67, 71, 74, 79,
+        66, 69, 74, 78,
+        64, 67, 71, 76,
+        69, 73, 76, 81,
       ];
+      this.scheduleNext = this.scheduleNext.bind(this);
     }
 
     async unlock() {
@@ -62,13 +67,13 @@
 
       this.context = new AudioContext();
       this.master = this.context.createGain();
-      this.master.gain.value = 0.2;
+      this.master.gain.value = 0.17;
       this.delay = this.context.createDelay(2);
       const feedback = this.context.createGain();
       const wet = this.context.createGain();
-      this.delay.delayTime.value = 0.19;
-      feedback.gain.value = 0.12;
-      wet.gain.value = 0.09;
+      this.delay.delayTime.value = 0.31;
+      feedback.gain.value = 0.2;
+      wet.gain.value = 0.16;
       this.delay.connect(feedback);
       feedback.connect(this.delay);
       this.delay.connect(wet);
@@ -77,68 +82,81 @@
       wet.connect(this.context.destination);
     }
 
-    playAt(position, verticalPosition = 0.5, energy = 0.5, direction = 1) {
-      if (!this.enabled || !this.context || this.context.state !== "running") return;
-      const nowMs = performance.now();
-      if (nowMs - this.lastPlayed < 105) return;
-
-      const suiteIndex = clamp(Math.floor(verticalPosition * this.suites.length), 0, this.suites.length - 1);
-      const suite = this.suites[suiteIndex];
-      const rawIndex = clamp(Math.floor(position * suite.length), 0, suite.length - 1);
-      const index = direction < 0 ? suite.length - 1 - rawIndex : rawIndex;
-      const noteKey = suiteIndex * 100 + index;
-      if (noteKey === this.lastNote && nowMs - this.lastPlayed < 210) return;
-      this.lastPlayed = nowMs;
-      this.lastNote = noteKey;
-      this.playCelloNote(suite[index], clamp(energy, 0.2, 1));
+    move(position, verticalPosition = 0.5, energy = 0.5, direction = 1) {
+      this.motion = {
+        x: clamp(position, 0, 1),
+        y: clamp(verticalPosition, 0, 1),
+        energy: clamp(energy, 0.22, 1),
+        direction,
+      };
+      this.activeUntil = performance.now() + 520;
+      if (this.enabled && !this.timer) this.scheduleNext();
     }
 
-    playCelloNote(midi, energy = 0.5, delay = 0) {
+    scheduleNext() {
+      this.timer = 0;
+      if (!this.enabled || performance.now() > this.activeUntil) return;
+
+      const octave = this.motion.y < 0.2 ? 12 : this.motion.y > 0.82 ? -12 : 0;
+      const midi = this.sequence[this.step % this.sequence.length] + octave;
+      const pan = clamp((this.motion.x - 0.5) * 1.35, -0.8, 0.8);
+      this.playMidi(midi, this.motion.energy, 0, pan);
+      if (this.step % 4 === 0) this.playMidi(midi - 12, this.motion.energy * 0.28, 0.028, pan * 0.45);
+      this.step += 1;
+      const interval = clamp(166 - this.motion.energy * 48, 112, 155);
+      this.timer = window.setTimeout(this.scheduleNext, interval);
+    }
+
+    playMidi(midi, energy = 0.5, delay = 0, pan = 0) {
       if (!this.context || !this.master) return;
       const frequency = 440 * (2 ** ((midi - 69) / 12));
       const now = this.context.currentTime + delay;
       const gain = this.context.createGain();
-      const filter = this.context.createBiquadFilter();
       const fundamental = this.context.createOscillator();
-      const bow = this.context.createOscillator();
-      const body = this.context.createOscillator();
-      const bowGain = this.context.createGain();
-      const bodyGain = this.context.createGain();
+      const overtone = this.context.createOscillator();
+      const overtoneGain = this.context.createGain();
+      const panner = this.context.createStereoPanner?.();
 
-      fundamental.type = "sawtooth";
-      bow.type = "triangle";
-      body.type = "sine";
+      fundamental.type = "sine";
+      overtone.type = "triangle";
       fundamental.frequency.value = frequency;
-      bow.frequency.value = frequency * 2.005;
-      body.frequency.value = frequency * 0.5;
-      bowGain.gain.value = 0.09;
-      bodyGain.gain.value = 0.15;
-      filter.type = "lowpass";
-      filter.frequency.setValueAtTime(720 + energy * 760, now);
-      filter.Q.value = 1.15;
+      overtone.frequency.value = frequency * 2.003;
+      overtoneGain.gain.value = 0.055;
+      if (panner) panner.pan.setValueAtTime(pan, now);
 
       gain.gain.setValueAtTime(0.0001, now);
-      gain.gain.exponentialRampToValueAtTime(0.022 * energy, now + 0.055);
-      gain.gain.exponentialRampToValueAtTime(0.014 * energy, now + 0.31);
-      gain.gain.exponentialRampToValueAtTime(0.0001, now + 1.12);
-      fundamental.connect(filter);
-      bow.connect(bowGain);
-      body.connect(bodyGain);
-      bowGain.connect(filter);
-      bodyGain.connect(filter);
-      filter.connect(gain);
-      gain.connect(this.master);
+      gain.gain.exponentialRampToValueAtTime(0.028 * energy, now + 0.018);
+      gain.gain.exponentialRampToValueAtTime(0.011 * energy, now + 0.34);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 1.42);
+      fundamental.connect(gain);
+      overtone.connect(overtoneGain);
+      overtoneGain.connect(gain);
+      if (panner) {
+        gain.connect(panner);
+        panner.connect(this.master);
+      } else {
+        gain.connect(this.master);
+      }
       fundamental.start(now);
-      bow.start(now);
-      body.start(now);
-      fundamental.stop(now + 1.18);
-      bow.stop(now + 1.18);
-      body.stop(now + 1.18);
+      overtone.start(now);
+      fundamental.stop(now + 1.48);
+      overtone.stop(now + 1.48);
+    }
+
+    preview() {
+      if (!this.enabled) return;
+      [62, 66, 69, 74, 76, 74].forEach((note, index) => this.playMidi(note, 0.42, index * 0.11, -0.25 + index * 0.1));
     }
 
     cadence() {
       if (!this.enabled) return;
-      [43, 50, 59, 62].forEach((note, index) => this.playCelloNote(note, 0.42, index * 0.085));
+      [62, 66, 69, 74].forEach((note, index) => this.playMidi(note, 0.48, index * 0.075));
+    }
+
+    stop() {
+      this.activeUntil = 0;
+      if (this.timer) window.clearTimeout(this.timer);
+      this.timer = 0;
     }
   }
 
@@ -149,12 +167,18 @@
       this.music = music;
       this.particles = [];
       this.stars = [];
-      this.pointer = { x: -9999, y: -9999, active: false, source: "mouse" };
-      this.lastInput = { x: 0, time: performance.now() };
+      this.trails = [];
+      this.ripples = [];
+      this.pointer = { x: -9999, y: -9999, vx: 0, vy: 0, active: false, source: "mouse", intensity: 0 };
+      this.lastInput = { x: 0, y: 0, time: performance.now(), source: "mouse" };
+      this.gesturePose = "neutral";
+      this.poseChangedAt = performance.now();
       this.width = 1;
       this.height = 1;
-      this.radius = 150;
-      this.formedAt = reducedMotion ? 0 : performance.now() + 1550;
+      this.radius = 185;
+      this.startedAt = performance.now();
+      this.formedAt = reducedMotion ? 0 : this.startedAt + 2350;
+      this.lastRipple = 0;
       this.resizeTimer = 0;
       this.resize = this.resize.bind(this);
       this.animate = this.animate.bind(this);
@@ -165,7 +189,10 @@
       }, { passive: true });
       targetCanvas.addEventListener("pointermove", (event) => this.handlePointer(event), { passive: true });
       targetCanvas.addEventListener("pointerleave", () => {
-        if (this.pointer.source === "mouse") this.setPointer(-9999, -9999, false, "mouse");
+        if (this.pointer.source === "mouse") {
+          this.setPointer(-9999, -9999, false, "mouse");
+          this.music.stop();
+        }
       });
       this.resize();
       this.animate();
@@ -175,7 +202,7 @@
       const dpr = Math.min(window.devicePixelRatio || 1, 1.75);
       this.width = window.innerWidth;
       this.height = window.innerHeight;
-      this.radius = this.width < 680 ? 92 : 150;
+      this.radius = this.width < 680 ? 112 : 185;
       this.canvas.width = Math.round(this.width * dpr);
       this.canvas.height = Math.round(this.height * dpr);
       this.canvas.style.width = `${this.width}px`;
@@ -207,6 +234,8 @@
           if (pixels[(y * this.width + x) * 4 + 3] > 120) {
             const existing = this.particles[nextParticles.length];
             const origin = this.getEdgeOrigin(nextParticles.length);
+            const angle = Math.random() * Math.PI * 2;
+            const scatterRadius = Math.max(this.width, this.height) * (0.24 + Math.random() * 0.62);
             nextParticles.push({
               x: existing ? existing.x : origin.x,
               y: existing ? existing.y : origin.y,
@@ -214,8 +243,13 @@
               ty: y,
               vx: existing ? existing.vx : 0,
               vy: existing ? existing.vy : 0,
-              size: 0.65 + Math.random() * 1.15,
-              alpha: 0.38 + Math.random() * 0.58,
+              sx: this.width / 2 + Math.cos(angle) * scatterRadius,
+              sy: this.height / 2 + Math.sin(angle) * scatterRadius,
+              birth: existing?.birth ?? this.startedAt + Math.random() * 920,
+              depth: 0.45 + Math.random() * 0.85,
+              phase: Math.random() * Math.PI * 2,
+              size: 0.7 + Math.random() * 1.35,
+              alpha: 0.42 + Math.random() * 0.54,
             });
           }
         }
@@ -240,86 +274,235 @@
         seed = (seed * 16807) % 2147483647;
         return (seed - 1) / 2147483646;
       };
-      const count = this.width < 680 ? 28 : 56;
+      const count = this.width < 680 ? 54 : 118;
       this.stars = Array.from({ length: count }, () => ({
         x: random() * this.width,
         y: random() * this.height,
-        size: 0.35 + random() * 0.8,
-        alpha: 0.05 + random() * 0.14,
+        z: 0.25 + random() * 0.9,
+        size: 0.3 + random() * 1.05,
+        alpha: 0.035 + random() * 0.18,
+        phase: random() * Math.PI * 2,
       }));
     }
 
     handlePointer(event) {
-      const now = performance.now();
       const rect = this.canvas.getBoundingClientRect();
       const x = event.clientX - rect.left;
       const y = event.clientY - rect.top;
-      const elapsed = Math.max(16, now - this.lastInput.time);
-      const velocity = Math.abs(x - this.lastInput.x) / elapsed;
-      const direction = x >= this.lastInput.x ? 1 : -1;
-      this.setPointer(x, y, true, "mouse");
-      if (velocity > 0.12) this.music.playAt(x / this.width, y / this.height, clamp(velocity * 0.8, 0.25, 1), direction);
-      this.lastInput = { x, time: now };
+      this.handleMotion(x, y, "mouse");
     }
 
     setHandPointer(x, y) {
-      const now = performance.now();
-      const px = x * this.width;
-      const py = y * this.height;
-      const elapsed = Math.max(16, now - this.lastInput.time);
-      const velocity = Math.abs(px - this.lastInput.x) / elapsed;
-      const direction = px >= this.lastInput.x ? 1 : -1;
-      this.setPointer(px, py, true, "hand");
-      if (velocity > 0.045) this.music.playAt(x, y, clamp(velocity * 1.4, 0.3, 1), direction);
-      this.lastInput = { x: px, time: now };
+      this.handleMotion(x * this.width, y * this.height, "hand");
     }
 
-    setPointer(x, y, active, source) {
+    handleMotion(x, y, source) {
+      const now = performance.now();
+      const sourceChanged = this.lastInput.source !== source;
+      const elapsed = Math.max(16, now - this.lastInput.time);
+      const dx = sourceChanged ? 0 : x - this.lastInput.x;
+      const dy = sourceChanged ? 0 : y - this.lastInput.y;
+      const velocity = Math.hypot(dx, dy) / elapsed;
+      const direction = dx >= 0 ? 1 : -1;
+      this.setPointer(x, y, true, source, dx / elapsed, dy / elapsed, velocity);
+      if (velocity > 0.035) {
+        this.music.move(x / this.width, y / this.height, clamp(velocity * 0.72, 0.26, 1), direction);
+        this.trails.push({ x, y, life: 1, size: 14 + Math.min(velocity * 24, 28) });
+        if (this.trails.length > 34) this.trails.shift();
+        if (velocity > 0.62 && now - this.lastRipple > 170) {
+          this.ripples.push({ x, y, radius: 12, life: 1 });
+          this.lastRipple = now;
+        }
+      }
+      this.lastInput = { x, y, time: now, source };
+    }
+
+    setPointer(x, y, active, source, vx = 0, vy = 0, intensity = 0) {
       this.pointer.x = x;
       this.pointer.y = y;
+      this.pointer.vx = vx;
+      this.pointer.vy = vy;
       this.pointer.active = active;
       this.pointer.source = source;
+      this.pointer.intensity = clamp(intensity, 0, 2.2);
+    }
+
+    setGesturePose(pose) {
+      if (this.gesturePose === pose) return;
+      this.gesturePose = pose;
+      this.poseChangedAt = performance.now();
+      if (pose === "open") {
+        this.ripples.push({ x: this.pointer.x, y: this.pointer.y, radius: 24, life: 1.3 });
+      } else if (pose === "fist") {
+        this.ripples.push({ x: this.width / 2, y: this.height * 0.43, radius: Math.min(this.width, this.height) * 0.42, life: 0.75, inward: true });
+      }
+    }
+
+    drawBackdrop(now) {
+      const { ctx, width, height } = this;
+      const parallaxX = this.pointer.active ? (this.pointer.x / width - 0.5) * 18 : 0;
+      const parallaxY = this.pointer.active ? (this.pointer.y / height - 0.5) * 12 : 0;
+
+      this.stars.forEach((star) => {
+        star.y -= 0.025 + star.z * 0.07;
+        if (star.y < -3) star.y = height + 3;
+        const pulse = 0.68 + Math.sin(now * 0.0012 + star.phase) * 0.32;
+        ctx.fillStyle = `rgba(170, 204, 221, ${star.alpha * pulse})`;
+        ctx.fillRect(star.x + parallaxX * star.z, star.y + parallaxY * star.z, star.size * star.z, star.size * star.z);
+      });
+
+      ctx.save();
+      ctx.translate(width / 2, height * 0.43);
+      ctx.rotate(now * 0.000025);
+      ctx.strokeStyle = "rgba(111, 157, 180, 0.055)";
+      ctx.lineWidth = 1;
+      [0.3, 0.44, 0.61].forEach((scale, index) => {
+        ctx.beginPath();
+        ctx.ellipse(0, 0, width * scale, height * scale * 0.42, index * 0.38, Math.PI * 0.08, Math.PI * 1.55);
+        ctx.stroke();
+      });
+      ctx.restore();
+
+      if (this.pointer.active) {
+        const aura = ctx.createRadialGradient(this.pointer.x, this.pointer.y, 0, this.pointer.x, this.pointer.y, this.radius * 1.25);
+        aura.addColorStop(0, `rgba(146, 212, 242, ${0.07 + this.pointer.intensity * 0.035})`);
+        aura.addColorStop(0.38, "rgba(83, 151, 184, 0.035)");
+        aura.addColorStop(1, "rgba(40, 91, 118, 0)");
+        ctx.fillStyle = aura;
+        ctx.fillRect(this.pointer.x - this.radius * 1.25, this.pointer.y - this.radius * 1.25, this.radius * 2.5, this.radius * 2.5);
+      }
+    }
+
+    drawMotion() {
+      const { ctx } = this;
+      ctx.save();
+      ctx.globalCompositeOperation = "lighter";
+
+      if (this.trails.length > 1) {
+        ctx.beginPath();
+        this.trails.forEach((trail, index) => {
+          if (index === 0) ctx.moveTo(trail.x, trail.y);
+          else ctx.lineTo(trail.x, trail.y);
+        });
+        ctx.strokeStyle = "rgba(118, 190, 224, 0.18)";
+        ctx.lineWidth = 1.2;
+        ctx.stroke();
+      }
+
+      this.trails = this.trails.filter((trail) => {
+        trail.life -= 0.032;
+        trail.size += 0.42;
+        if (trail.life <= 0) return false;
+        ctx.fillStyle = `rgba(130, 205, 239, ${trail.life * 0.055})`;
+        ctx.beginPath();
+        ctx.arc(trail.x, trail.y, trail.size, 0, Math.PI * 2);
+        ctx.fill();
+        return true;
+      });
+
+      this.ripples = this.ripples.filter((ripple) => {
+        ripple.life -= ripple.inward ? 0.028 : 0.022;
+        ripple.radius += ripple.inward ? -10 : 7;
+        if (ripple.life <= 0 || ripple.radius <= 2) return false;
+        ctx.strokeStyle = `rgba(147, 211, 239, ${Math.max(0, ripple.life) * 0.22})`;
+        ctx.lineWidth = 0.8 + ripple.life * 1.4;
+        ctx.beginPath();
+        ctx.arc(ripple.x, ripple.y, ripple.radius, 0, Math.PI * 2);
+        ctx.stroke();
+        return true;
+      });
+      ctx.restore();
     }
 
     animate() {
       const { ctx, width, height } = this;
-      const forming = performance.now() < this.formedAt;
-      const attraction = forming ? 0.009 : 0.026;
-      const drag = forming ? 0.9 : 0.85;
+      const now = performance.now();
+      const forming = now < this.formedAt;
+      const poseAge = clamp((now - this.poseChangedAt) / 720, 0, 1);
       ctx.clearRect(0, 0, width, height);
-      this.stars.forEach((star) => {
-        ctx.fillStyle = `rgba(181, 202, 212, ${star.alpha})`;
-        ctx.fillRect(star.x, star.y, star.size, star.size);
-      });
+      this.drawBackdrop(now);
+      this.drawMotion();
+      ctx.save();
+      ctx.globalCompositeOperation = "lighter";
 
-      this.particles.forEach((particle) => {
-        if (this.pointer.active) {
+      this.particles.forEach((particle, index) => {
+        if (now < particle.birth && forming) return;
+
+        let targetX = particle.tx;
+        let targetY = particle.ty;
+        let attraction = forming ? 0.007 : 0.027;
+        let drag = forming ? 0.91 : 0.855;
+
+        if (this.gesturePose === "open") {
+          targetX = particle.sx;
+          targetY = particle.sy;
+          attraction = 0.012 + poseAge * 0.02;
+          drag = 0.89;
+        } else if (this.gesturePose === "fist") {
+          attraction = 0.038 + poseAge * 0.035;
+          drag = 0.82;
+        }
+
+        if (forming) {
+          const birthProgress = clamp((now - particle.birth) / 1350, 0, 1);
+          attraction += birthProgress * 0.018;
+          const centerDx = particle.x - width / 2;
+          const centerDy = particle.y - height * 0.43;
+          const swirl = (1 - birthProgress) * 0.00042 * particle.depth;
+          particle.vx += -centerDy * swirl;
+          particle.vy += centerDx * swirl;
+        }
+
+        if (this.pointer.active && this.gesturePose !== "fist") {
           const dx = particle.x - this.pointer.x;
           const dy = particle.y - this.pointer.y;
           const distanceSquared = dx * dx + dy * dy;
           if (distanceSquared < this.radius * this.radius && distanceSquared > 0.01) {
             const distance = Math.sqrt(distanceSquared);
-            const force = (1 - distance / this.radius) * (this.pointer.source === "hand" ? 2.4 : 1.65);
-            particle.vx += (dx / distance) * force;
-            particle.vy += (dy / distance) * force;
+            const influence = 1 - distance / this.radius;
+            const strength = influence * (this.pointer.source === "hand" ? 3.5 : 2.45);
+            const sweep = influence * Math.min(this.pointer.intensity, 1.8);
+            particle.vx += (dx / distance) * strength + this.pointer.vx * sweep * 1.35;
+            particle.vy += (dy / distance) * strength + this.pointer.vy * sweep * 1.35;
+            const spin = (this.pointer.vx * dy - this.pointer.vy * dx >= 0 ? 1 : -1) * influence * 0.92;
+            particle.vx += (-dy / distance) * spin;
+            particle.vy += (dx / distance) * spin;
+
+            if (index % 31 === 0) {
+              ctx.strokeStyle = `rgba(112, 193, 229, ${influence * 0.18})`;
+              ctx.lineWidth = 0.55;
+              ctx.beginPath();
+              ctx.moveTo(particle.x, particle.y);
+              ctx.lineTo(this.pointer.x, this.pointer.y);
+              ctx.stroke();
+            }
           }
         }
 
-        particle.vx += (particle.tx - particle.x) * attraction;
-        particle.vy += (particle.ty - particle.y) * attraction;
+        particle.vx += (targetX - particle.x) * attraction;
+        particle.vy += (targetY - particle.y) * attraction;
         particle.vx *= drag;
         particle.vy *= drag;
         particle.x += particle.vx;
         particle.y += particle.vy;
 
         const speed = Math.abs(particle.vx) + Math.abs(particle.vy);
-        const shimmer = clamp(speed * 0.04, 0, 0.3);
-        ctx.fillStyle = `rgba(190, 215, 228, ${particle.alpha - 0.12 + shimmer})`;
+        const shimmer = clamp(speed * 0.045, 0, 0.48);
+        const pulse = 0.84 + Math.sin(now * 0.0024 + particle.phase) * 0.16;
+        if (index % 7 === 0 && speed > 1.1) {
+          ctx.fillStyle = `rgba(93, 180, 222, ${Math.min(0.11, shimmer * 0.2)})`;
+          ctx.beginPath();
+          ctx.arc(particle.x, particle.y, particle.size * 4.8, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.fillStyle = `rgba(190, 224, 239, ${clamp((particle.alpha - 0.1 + shimmer) * pulse, 0.08, 1)})`;
         ctx.beginPath();
-        ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+        ctx.arc(particle.x, particle.y, particle.size + shimmer * 0.9, 0, Math.PI * 2);
         ctx.fill();
       });
 
+      ctx.restore();
+      this.pointer.intensity *= 0.92;
       if (!reducedMotion) requestAnimationFrame(this.animate);
     }
   }
@@ -335,7 +518,7 @@
       this.lastVideoTime = -1;
       this.lastDetection = 0;
       this.lastFrame = performance.now();
-      this.openHold = 0;
+      this.entryHold = 0;
       this.loop = this.loop.bind(this);
     }
 
@@ -378,7 +561,7 @@
         await video.play();
         cameraButton.disabled = false;
         cameraButton.lastChild.textContent = " Gesture active";
-        status.textContent = "Show one hand · move left and right";
+        status.textContent = "Show one hand · open, close, or make OK";
         this.running = true;
         this.lastFrame = performance.now();
         requestAnimationFrame(this.loop);
@@ -414,7 +597,10 @@
       this.lastFrame = now;
 
       if (!landmarks) {
-        this.openHold = Math.max(0, this.openHold - delta * 1.8);
+        this.entryHold = Math.max(0, this.entryHold - delta * 1.8);
+        this.field.setGesturePose("neutral");
+        this.field.setPointer(-9999, -9999, false, "hand");
+        this.music.stop();
         this.updateProgress();
         status.textContent = "No hand detected · place one hand in view";
         return;
@@ -433,17 +619,26 @@
       this.field.setHandPointer(x, y);
 
       const openness = this.getOpenness(landmarks);
-      if (openness >= 1) {
-        this.openHold += delta;
-        status.textContent = "Open palm detected · hold to enter";
+      const okGesture = this.isOkGesture(landmarks);
+      if (okGesture) {
+        this.entryHold += delta;
+        this.field.setGesturePose("neutral");
+        status.textContent = "OK gesture detected · hold to enter";
       } else {
-        this.openHold = Math.max(0, this.openHold - delta * 1.45);
-        status.textContent = openness >= 0.6
-          ? "Spread all five fingers"
-          : "Hand connected · move left and right";
+        this.entryHold = Math.max(0, this.entryHold - delta * 1.55);
+        if (openness >= 0.8) {
+          this.field.setGesturePose("open");
+          status.textContent = "Open hand · particles released";
+        } else if (openness <= 0.2) {
+          this.field.setGesturePose("fist");
+          status.textContent = "Fist detected · gathering LAN LUO";
+        } else {
+          this.field.setGesturePose("neutral");
+          status.textContent = "Move through the field · make OK to enter";
+        }
       }
       this.updateProgress();
-      if (this.openHold >= 720) this.onEnter("gesture");
+      if (this.entryHold >= 680) this.onEnter("gesture");
     }
 
     getOpenness(landmarks) {
@@ -459,8 +654,19 @@
       return extended / 5;
     }
 
+    isOkGesture(landmarks) {
+      const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y, (a.z || 0) - (b.z || 0));
+      const wrist = landmarks[0];
+      const palmSpan = Math.max(0.06, distance(landmarks[5], landmarks[17]));
+      const pinched = distance(landmarks[4], landmarks[8]) < palmSpan * 0.42;
+      const raised = [[12, 10], [16, 14], [20, 18]].filter(([tip, pip]) => (
+        distance(landmarks[tip], wrist) > distance(landmarks[pip], wrist) * 1.12
+      )).length;
+      return pinched && raised >= 2;
+    }
+
     updateProgress() {
-      const progress = clamp(this.openHold / 720, 0, 1);
+      const progress = clamp(this.entryHold / 680, 0, 1);
       intro.style.setProperty("--gesture-progress", `${progress * 360}deg`);
     }
 
@@ -470,12 +676,14 @@
       this.stream = null;
       video.srcObject = null;
       this.field.setPointer(-9999, -9999, false, "hand");
+      this.field.setGesturePose("neutral");
+      this.music.stop();
       if (this.landmarker?.close) this.landmarker.close();
       this.landmarker = null;
     }
   }
 
-  const music = new CelloSuitesMusic();
+  const music = new ContinuousMusic();
   const field = new GestureParticleField(canvas, music);
   let leaving = false;
   let handController;
@@ -483,6 +691,7 @@
   const enterSite = async (method) => {
     if (leaving) return;
     leaving = true;
+    music.stop();
     music.unlock().then((enabled) => {
       if (enabled) music.cadence();
     });
@@ -511,7 +720,7 @@
     if (enabled) {
       mouseSoundButton.textContent = "Mouse sound on";
       status.textContent = "Move left and right across LAN LUO · click the field to enter";
-      music.playAt(0.25, 0.45, 0.45, 1);
+      music.preview();
     } else {
       status.textContent = "Audio unavailable · particle interaction still works";
     }
